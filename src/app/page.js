@@ -1,103 +1,118 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect, use } from "react";
+import RecipeCard from "../components/RecipeCard";
+import RecipeModal from "../components/RecipeModal";
+import RecipeList from "../components/RecipeList";
+import SearchForm from "../components/SearchForm";
+
+export default function App() {
+  const [query, setQuery] = useState("");
+  const [recipes, setRecipes] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [favorites, setFavorites] = useState([]);
+
+  // 3. useEffect untuk MEMUAT favorit saat aplikasi pertama kali dibuka
+  useEffect(() => {
+    const storedFavorites =
+      JSON.parse(localStorage.getItem("recipeFavorites")) || [];
+    setFavorites(storedFavorites);
+  }, []); // Array kosong berarti efek ini hanya berjalan sekali saat komponen dimuat
+
+  // 4. useEffect untuk MENYIMPAN favorit setiap kali state 'favorites' berubah
+  useEffect(() => {
+    localStorage.setItem("recipeFavorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!query) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`
+      );
+      const data = await response.json();
+      setRecipes(data.meals || []);
+    } catch (error) {
+      console.error("Gagal mengambil data:", error);
+      setRecipes([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCardClick = async (mealId) => {
+    try {
+      const response = await fetch(
+        `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`
+      );
+      const data = await response.json();
+      setSelectedRecipe(data.meals[0]);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error("Gagal mengambil detail resep:", error);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedRecipe(null);
+  };
+
+  // 5. Fungsi baru untuk menambah/menghapus favorit
+  const toggleFavorite = (recipe) => {
+    // Cek apakah resep sudah ada di favorit
+    const isFavorite = favorites.some((fav) => fav.idMeal === recipe.idMeal);
+
+    if (isFavorite) {
+      // Jika sudah ada, hapus dari favorit
+      setFavorites(favorites.filter((fav) => fav.idMeal !== recipe.idMeal));
+    } else {
+      // Jika belum ada, tambahkan ke favorit
+      setFavorites([...favorites, recipe]);
+    }
+  };
+
+  // PASTIKAN BAGIAN RETURN INI ADA DI DALAM FUNGSI APP ANDA
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="min-h-screen bg-gray-900 text-white font-sans p-4 sm:p-6 lg:p-8">
+      <div className="max-w-4xl mx-auto">
+        <header className="text-center mb-10">
+          <h1 className="text-4xl sm:text-5xl font-bold text-yellow-400">
+            🍳 Pencari Resep Makanan
+          </h1>
+          <p className="text-gray-400 mt-2">
+            Ketik nama bahan dan temukan resep favoritmu!
+          </p>
+        </header>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+        <SearchForm
+          query={query}
+          setQuery={setQuery}
+          handleSearch={handleSearch}
+          isLoading={isLoading}
+        />
+        {/* Manajer mendelegasikan tugas ke Staf Display */}
+        <RecipeList
+          isLoading={isLoading}
+          favorites={favorites}
+          recipes={recipes}
+          handleCardClick={handleCardClick}
+        />
+
+        {isModalOpen && (
+          <RecipeModal
+            recipe={selectedRecipe}
+            onClose={closeModal}
+            // Kirim fungsi toggleFavorite dan daftar favorites sebagai props
+            onToggleFavorite={toggleFavorite}
+            favorites={favorites}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        )}
+      </div>
     </div>
   );
 }
