@@ -81,16 +81,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "2rem",
-          }}
-        >
-          <h1>Website Pencari Makanan</h1>
-          <LoginButton /> {/* <-- 2. TAMPILKAN KOMPONEN DI SINI */}
+        <header className="flex justify-between items-center mb-8 py-4 border-b border-gray-700">
+          <h1 className="text-2xl font-bold text-yellow-400">
+            Pencari Resep Makanan
+          </h1>
+          <LoginButton />
         </header>
 
         <SearchForm
