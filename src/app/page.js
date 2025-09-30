@@ -5,6 +5,7 @@ import RecipeCard from "../components/RecipeCard";
 import RecipeModal from "../components/RecipeModal";
 import RecipeList from "../components/RecipeList";
 import SearchForm from "../components/SearchForm";
+import LoginButton from "../components/LoginButton";
 
 export default function App() {
   const [query, setQuery] = useState("");
@@ -80,13 +81,16 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-10">
-          <h1 className="text-4xl sm:text-5xl font-bold text-yellow-400">
-            🍳 Pencari Resep Makanan
-          </h1>
-          <p className="text-gray-400 mt-2">
-            Ketik nama bahan dan temukan resep favoritmu!
-          </p>
+        <header
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "2rem",
+          }}
+        >
+          <h1>Website Pencari Makanan</h1>
+          <LoginButton /> {/* <-- 2. TAMPILKAN KOMPONEN DI SINI */}
         </header>
 
         <SearchForm
