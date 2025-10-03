@@ -1,13 +1,18 @@
+// src/app/page.js
+
 "use client";
 
-import { useState, useEffect, use } from "react";
-import RecipeCard from "../components/RecipeCard";
-import RecipeModal from "../components/RecipeModal";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react"; // 1. Impor useSession
+
+// Impor komponen Anda
 import RecipeList from "../components/RecipeList";
 import SearchForm from "../components/SearchForm";
+import RecipeModal from "../components/RecipeModal";
 import LoginButton from "../components/LoginButton";
 
 export default function App() {
+  // --- STATE LAMA (TETAP DIPAKAI) ---
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,19 +20,49 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [favorites, setFavorites] = useState([]);
 
-  // 3. useEffect untuk MEMUAT favorit saat aplikasi pertama kali dibuka
-  useEffect(() => {
-    const storedFavorites =
-      JSON.parse(localStorage.getItem("recipeFavorites")) || [];
-    setFavorites(storedFavorites);
-  }, []); // Array kosong berarti efek ini hanya berjalan sekali saat komponen dimuat
+  // --- MENGGUNAKAN SESI PENGGUNA ---
+  const { data: session } = useSession(); // 3. Dapatkan data sesi pengguna
 
-  // 4. useEffect untuk MENYIMPAN favorit setiap kali state 'favorites' berubah
+  // --- EFEK BARU: MEMUAT FAVORIT DARI SUPABASE ---
+  // --- EFEK BARU: MEMUAT FAVORIT DARI API ROUTE KITA ---
   useEffect(() => {
-    localStorage.setItem("recipeFavorites", JSON.stringify(favorites));
-  }, [favorites]);
+    const fetchFavorites = async () => {
+      // Jika pengguna tidak login, pastikan daftar favorit kosong lalu berhenti.
+      if (!session) {
+        setFavorites([]);
+        return;
+      }
 
+      try {
+        // Panggil "Manajer" kita di backend menggunakan fetch standar browser
+        const response = await fetch("/api/favorites");
+
+        if (!response.ok) {
+          // Jika manajer merespons dengan error, catat di konsol
+          throw new Error("Gagal mengambil data dari server");
+        }
+
+        // Ambil data JSON yang diberikan oleh manajer
+        const data = await response.json();
+
+        // Format data agar cocok dengan komponen RecipeCard kita (tidak ada perubahan di sini)
+        const formattedFavorites = data.map((fav) => ({
+          idMeal: fav.recipe_id,
+          strMeal: fav.recipe_name,
+          strMealThumb: fav.recipe_image,
+        }));
+        setFavorites(formattedFavorites);
+      } catch (error) {
+        console.error("Gagal mengambil data favorit:", error);
+      }
+    };
+
+    fetchFavorites();
+  }, [session]); // Efek ini tetap berjalan saat status login berubah
+
+  // --- FUNGSI LAMA (TETAP DIPAKAI) ---
   const handleSearch = async (e) => {
+    // ... (kode ini tidak berubah)
     e.preventDefault();
     if (!query) return;
     setIsLoading(true);
@@ -44,8 +79,8 @@ export default function App() {
       setIsLoading(false);
     }
   };
-
   const handleCardClick = async (mealId) => {
+    // ... (kode ini tidak berubah)
     try {
       const response = await fetch(
         `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`
@@ -57,27 +92,46 @@ export default function App() {
       console.error("Gagal mengambil detail resep:", error);
     }
   };
-
   const closeModal = () => {
+    // ... (kode ini tidak berubah)
     setIsModalOpen(false);
     setSelectedRecipe(null);
   };
 
-  // 5. Fungsi baru untuk menambah/menghapus favorit
-  const toggleFavorite = (recipe) => {
-    // Cek apakah resep sudah ada di favorit
-    const isFavorite = favorites.some((fav) => fav.idMeal === recipe.idMeal);
+  // --- FUNGSI FAVORIT YANG SUDAH DIPERBAIKI ---
+  const toggleFavorite = async (recipe) => {
+    if (!session) {
+      alert("Silakan login untuk menyimpan resep favorit!");
+      return;
+    }
 
-    if (isFavorite) {
-      // Jika sudah ada, hapus dari favorit
-      setFavorites(favorites.filter((fav) => fav.idMeal !== recipe.idMeal));
-    } else {
-      // Jika belum ada, tambahkan ke favorit
+    const isFavorite = favorites.some((fav) => fav.idMeal === recipe.idMeal);
+    const action = isFavorite ? "remove" : "add";
+
+    // Optimistic UI Update: Langsung perbarui tampilan agar responsif
+    if (action === "add") {
       setFavorites([...favorites, recipe]);
+    } else {
+      setFavorites(favorites.filter((fav) => fav.idMeal !== recipe.idMeal));
+    }
+
+    // Kirim permintaan ke "Manajer" (API Route)
+    try {
+      await fetch("/api/favorites", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ recipe, action }),
+      });
+    } catch (error) {
+      console.error("Gagal memperbarui favorit:", error);
+      // Rollback UI jika gagal (opsional, tapi praktik yang baik)
+      setFavorites(favorites);
+      alert("Gagal memperbarui favorit, silakan coba lagi.");
     }
   };
 
-  // PASTIKAN BAGIAN RETURN INI ADA DI DALAM FUNGSI APP ANDA
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
@@ -94,19 +148,19 @@ export default function App() {
           handleSearch={handleSearch}
           isLoading={isLoading}
         />
-        {/* Manajer mendelegasikan tugas ke Staf Display */}
+
         <RecipeList
           isLoading={isLoading}
           favorites={favorites}
           recipes={recipes}
           handleCardClick={handleCardClick}
+          onToggleFavorite={toggleFavorite} // Pastikan onToggleFavorite di-pass ke RecipeList
         />
 
         {isModalOpen && (
           <RecipeModal
             recipe={selectedRecipe}
             onClose={closeModal}
-            // Kirim fungsi toggleFavorite dan daftar favorites sebagai props
             onToggleFavorite={toggleFavorite}
             favorites={favorites}
           />
