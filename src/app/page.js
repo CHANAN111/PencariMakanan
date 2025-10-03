@@ -27,25 +27,21 @@ export default function App() {
   // --- EFEK BARU: MEMUAT FAVORIT DARI API ROUTE KITA ---
   useEffect(() => {
     const fetchFavorites = async () => {
-      // Jika pengguna tidak login, pastikan daftar favorit kosong lalu berhenti.
       if (!session) {
         setFavorites([]);
         return;
       }
 
       try {
-        // Panggil "Manajer" kita di backend menggunakan fetch standar browser
-        const response = await fetch("/api/favorites");
+        // Panggil "Manajer" kita dengan instruksi untuk tidak menyimpan cache
+        const response = await fetch("/api/favorites", { cache: "no-store" }); // <-- PERUBAHAN DI SINI
 
         if (!response.ok) {
-          // Jika manajer merespons dengan error, catat di konsol
           throw new Error("Gagal mengambil data dari server");
         }
 
-        // Ambil data JSON yang diberikan oleh manajer
         const data = await response.json();
 
-        // Format data agar cocok dengan komponen RecipeCard kita (tidak ada perubahan di sini)
         const formattedFavorites = data.map((fav) => ({
           idMeal: fav.recipe_id,
           strMeal: fav.recipe_name,
@@ -58,7 +54,7 @@ export default function App() {
     };
 
     fetchFavorites();
-  }, [session]); // Efek ini tetap berjalan saat status login berubah
+  }, [session]);
 
   // --- FUNGSI LAMA (TETAP DIPAKAI) ---
   const handleSearch = async (e) => {
