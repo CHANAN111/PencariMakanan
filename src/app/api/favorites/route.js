@@ -13,22 +13,31 @@ const supabase = createClient(
 );
 
 export async function GET(request) {
-  // ... (Fungsi GET tidak berubah, biarkan seperti ini)
+  console.log("--- FUNGSI GET /api/favorites DIPANGGIL ---"); // Log #1
   const session = await getServerSession(authOptions);
+
   if (!session) {
+    console.log("Sesi tidak ditemukan. Mengembalikan 401."); // Log #2
     return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
     });
   }
+
+  console.log(`Sesi ditemukan untuk: ${session.user.email}. Mengambil data...`); // Log #3
   const { data, error } = await supabase
     .from("favorites")
     .select("*")
     .eq("user_email", session.user.email);
+
+  // ... sisa kodenya sama
   if (error) {
+    console.error("Supabase GET Error:", error);
     return new NextResponse(JSON.stringify({ error: error.message }), {
       status: 500,
     });
   }
+
+  console.log(`Data berhasil diambil untuk ${session.user.email}.`); // Log #4
   return NextResponse.json(data);
 }
 

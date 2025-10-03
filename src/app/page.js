@@ -34,7 +34,9 @@ export default function App() {
 
       try {
         // Panggil "Manajer" kita dengan instruksi untuk tidak menyimpan cache
-        const response = await fetch("/api/favorites", { cache: "no-store" }); // <-- PERUBAHAN DI SINI
+        const response = await fetch(`/api/favorites?timestamp=${Date.now()}`, {
+          cache: "no-store",
+        });
 
         if (!response.ok) {
           throw new Error("Gagal mengambil data dari server");
