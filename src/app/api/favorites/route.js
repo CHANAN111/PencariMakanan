@@ -1,5 +1,7 @@
 // src/app/api/favorites/route.js
 
+export const dynamic = "force-dynamic";
+
 import { createClient } from "@supabase/supabase-js";
 import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
